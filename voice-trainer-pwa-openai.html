@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Meine Stimme">
+<meta name="theme-color" content="#1C1914">
+<title>Meine Stimme</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #1C1914;
+    --surface: #252118;
+    --border: #2d2820;
+    --text: #F2EFE9;
+    --muted: #7a7060;
+    --accent: #C9B99A;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── SCREENS ── */
+  .screen { display: none; flex-direction: column; height: 100vh; height: -webkit-fill-available; }
+  .screen.active { display: flex; }
+
+  /* ── HOME SCREEN ── */
+  #home {
+    align-items: center;
+    justify-content: center;
+    padding: 40px 28px;
+    gap: 0;
+  }
+  .home-title {
+    font-family: 'Lora', serif;
+    font-size: 28px;
+    font-style: italic;
+    color: var(--text);
+    margin-bottom: 6px;
+    text-align: center;
+  }
+  .home-sub {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 48px;
+    text-align: center;
+  }
+
+  /* Character progress */
+  .char-card {
+    width: 100%;
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  .char-bg-emoji {
+    position: absolute; top: -10px; right: 0;
+    font-size: 90px; opacity: 0.1; user-select: none;
+    line-height: 1;
+  }
+  .char-label {
+    font-size: 10px; letter-spacing: 0.18em;
+    text-transform: uppercase; margin-bottom: 6px;
+  }
+  .char-name {
+    font-family: 'Lora', serif;
+    font-size: 22px; font-style: italic;
+    margin-bottom: 3px;
+  }
+  .char-inspired {
+    font-size: 11px; color: var(--muted); margin-bottom: 14px;
+  }
+  .char-quote {
+    font-size: 13px; line-height: 1.7;
+    font-style: italic; color: #AAA;
+    margin-bottom: 0;
+  }
+
+  /* Progress bar */
+  .progress-wrap { width: 100%; margin-bottom: 20px; }
+  .progress-meta {
+    display: flex; justify-content: space-between;
+    font-size: 11px; color: var(--muted); margin-bottom: 6px;
+  }
+  .progress-bar {
+    height: 4px; background: var(--border);
+    border-radius: 2px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; border-radius: 2px;
+    transition: width 0.6s ease;
+  }
+
+  /* Category buttons */
+  .cat-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px; width: 100%;
+  }
+  .cat-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px; padding: 18px 14px;
+    cursor: pointer; text-align: left;
+    color: var(--text); font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s; -webkit-appearance: none;
+  }
+  .cat-btn:active { transform: scale(0.97); }
+  .cat-icon { font-size: 22px; margin-bottom: 8px; display: block; }
+  .cat-label { font-size: 13px; font-family: 'Lora', serif; font-style: italic; }
+
+  /* ── CHAT SCREEN ── */
+  #chat { position: relative; }
+
+  .chat-header {
+    padding: 14px 20px 10px;
+    border-bottom: 1px solid var(--border);
+    background: #19160F;
+    display: flex; align-items: center; gap: 12px;
+    flex-shrink: 0;
+  }
+  .back-btn {
+    background: none; border: none; color: var(--muted);
+    font-size: 20px; cursor: pointer; padding: 4px 8px 4px 0;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .header-char { font-size: 13px; }
+  .header-name { font-family: 'Lora', serif; font-style: italic; color: var(--accent); }
+  .header-level { font-size: 10px; color: var(--muted); letter-spacing: 0.08em; }
+
+  /* Avatar area */
+  .avatar-area {
+    flex-shrink: 0;
+    display: flex; flex-direction: column;
+    align-items: center; padding: 20px 0 10px;
+    background: var(--bg);
+  }
+
+  /* SVG Avatar */
+  .avatar-wrap {
+    position: relative;
+    width: 110px; height: 110px;
+  }
+  .avatar-svg { width: 110px; height: 110px; }
+
+  /* Listening rings */
+  .listen-ring {
+    position: absolute; border-radius: 50%;
+    border: 2px solid var(--accent);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+    transition: none;
+  }
+  .listen-ring.r1 { width: 120px; height: 120px; }
+  .listen-ring.r2 { width: 140px; height: 140px; }
+  .avatar-wrap.listening .listen-ring.r1 {
+    animation: ripple 1.5s ease-out infinite;
+  }
+  .avatar-wrap.listening .listen-ring.r2 {
+    animation: ripple 1.5s ease-out infinite 0.4s;
+  }
+  @keyframes ripple {
+    0% { transform: translate(-50%,-50%) scale(0.8); opacity: 0.6; }
+    100% { transform: translate(-50%,-50%) scale(1.3); opacity: 0; }
+  }
+
+  /* Speaking bounce */
+  .avatar-wrap.speaking .avatar-svg {
+    animation: speakBounce 0.5s ease-in-out infinite alternate;
+  }
+  @keyframes speakBounce {
+    from { transform: translateY(0) scale(1); }
+    to { transform: translateY(-4px) scale(1.03); }
+  }
+
+  /* Idle float */
+  .avatar-svg { animation: idleFloat 3s ease-in-out infinite; }
+  .avatar-wrap.speaking .avatar-svg,
+  .avatar-wrap.listening .avatar-svg { animation: none; }
+  @keyframes idleFloat {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+
+  /* Mouth states via JS class on svg */
+  .mouth-neutral { display: block; }
+  .mouth-speak { display: none; }
+  .mouth-listen { display: none; }
+  .avatar-wrap.speaking .mouth-neutral { display: none; }
+  .avatar-wrap.speaking .mouth-speak { display: block; }
+  .avatar-wrap.listening .mouth-neutral { display: none; }
+  .avatar-wrap.listening .mouth-listen { display: block; }
+
+  /* Eyes blink */
+  .eye-open { display: block; }
+  .eye-closed { display: none; }
+  .blinking .eye-open { display: none; }
+  .blinking .eye-closed { display: block; }
+
+  .avatar-status {
+    margin-top: 10px;
+    font-size: 11px; color: var(--muted);
+    letter-spacing: 0.1em; text-transform: uppercase;
+    height: 16px;
+  }
+
+  /* Chat messages */
+  .messages {
+    flex: 1; overflow-y: auto;
+    padding: 14px 18px; display: flex;
+    flex-direction: column; gap: 12px;
+  }
+  .msg { display: flex; align-items: flex-end; gap: 8px; }
+  .msg.user { justify-content: flex-end; }
+  .msg-bubble {
+    max-width: 78%; padding: 12px 16px;
+    border-radius: 18px; font-size: 14px;
+    line-height: 1.7; white-space: pre-wrap;
+  }
+  .msg.assistant .msg-bubble {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+    color: var(--text);
+  }
+  .msg.user .msg-bubble {
+    border-bottom-right-radius: 4px;
+    color: #1C1914; font-weight: 500;
+  }
+
+  /* Typing dots */
+  .typing-dots {
+    display: flex; gap: 5px; padding: 14px 16px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 18px; border-bottom-left-radius: 4px;
+    width: fit-content;
+  }
+  .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    animation: dotPulse 1.2s ease-in-out infinite;
+  }
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes dotPulse {
+    0%,100% { transform: scale(0.7); opacity: 0.3; }
+    50% { transform: scale(1); opacity: 1; }
+  }
+
+  /* Input area */
+  .input-area {
+    flex-shrink: 0;
+    padding: 10px 16px 20px;
+    border-top: 1px solid var(--border);
+    background: #19160F;
+  }
+  .input-hint {
+    font-size: 11px; color: var(--muted);
+    font-style: italic; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .input-row { display: flex; gap: 8px; align-items: flex-end; }
+  textarea {
+    flex: 1; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 14px;
+    padding: 12px 14px; color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 14px;
+    line-height: 1.5; resize: none; outline: none;
+    min-height: 46px; max-height: 110px;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+  textarea::placeholder { color: #3d3830; }
+  textarea:focus { border-color: var(--accent); }
+  .send-btn {
+    width: 44px; height: 44px; border-radius: 50%;
+    border: none; cursor: pointer;
+    font-size: 18px; flex-shrink: 0;
+    transition: all 0.2s; -webkit-appearance: none;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ── UNLOCK SCREEN ── */
+  #unlock {
+    align-items: center; justify-content: center;
+    padding: 40px 32px; text-align: center;
+  }
+  .unlock-emoji { font-size: 80px; margin-bottom: 20px; animation: floatIn 0.8s ease; }
+  .unlock-became { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 8px; }
+  .unlock-name { font-family: 'Lora', serif; font-size: 32px; font-style: italic; margin-bottom: 4px; }
+  .unlock-inspired { font-size: 13px; margin-bottom: 28px; }
+  .unlock-quote-box {
+    background: rgba(255,255,255,0.05); border-radius: 16px;
+    padding: 22px 24px; margin-bottom: 24px;
+    border: 1px solid rgba(255,255,255,0.08);
+    max-width: 360px;
+  }
+  .unlock-quote { font-size: 15px; font-style: italic; line-height: 1.8; }
+  .unlock-quote-attr { font-size: 12px; margin-top: 10px; opacity: 0.6; }
+  .unlock-msg { font-size: 14px; font-style: italic; color: var(--muted); margin-bottom: 32px; line-height: 1.7; max-width: 300px; }
+  .unlock-btn {
+    border: none; border-radius: 30px;
+    padding: 14px 40px; font-size: 15px;
+    font-family: 'Lora', serif; font-style: italic;
+    cursor: pointer; color: #1a1a1a;
+    -webkit-appearance: none;
+  }
+  @keyframes floatIn {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 2px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); }
+</style>
+</head>
+<body>
+
+<!-- HOME SCREEN -->
+<div id="home" class="screen active">
+  <div class="home-title">Meine Stimme</div>
+  <div class="home-sub">Finde deine Stimme — Schritt für Schritt</div>
+
+  <div class="char-card" id="homeCharCard">
+    <div class="char-bg-emoji" id="homeCharEmoji"></div>
+    <div class="char-label" id="homeCharLabel">Du bist gerade</div>
+    <div class="char-name" id="homeCharName"></div>
+    <div class="char-inspired" id="homeCharInspired"></div>
+    <div class="char-quote" id="homeCharQuote"></div>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-meta">
+      <span id="progressLabel">Stufe 1</span>
+      <span id="progressCount"></span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+
+  <div class="cat-grid">
+    <button class="cat-btn" onclick="startSession('smalltalk')">
+      <span class="cat-icon">☕</span>
+      <span class="cat-label">Smalltalk</span>
+    </button>
+    <button class="cat-btn" onclick="startSession('opinion')">
+      <span class="cat-icon">💬</span>
+      <span class="cat-label">Meinung</span>
+    </button>
+    <button class="cat-btn" onclick="startSession('humor')">
+      <span class="cat-icon">😄</span>
+      <span class="cat-label">Humor</span>
+    </button>
+    <button class="cat-btn" onclick="startSession('professional')">
+      <span class="cat-icon">💼</span>
+      <span class="cat-label">Beruflich</span>
+    </button>
+  </div>
+</div>
+
+<!-- CHAT SCREEN -->
+<div id="chat" class="screen">
+  <div class="chat-header">
+    <button class="back-btn" onclick="goHome()">←</button>
+    <div class="header-char">
+      <div class="header-name" id="headerName"></div>
+      <div class="header-level" id="headerLevel"></div>
+    </div>
+  </div>
+
+  <!-- Animated Avatar -->
+  <div class="avatar-area">
+    <div class="avatar-wrap" id="avatarWrap">
+      <div class="listen-ring r1"></div>
+      <div class="listen-ring r2"></div>
+      <svg class="avatar-svg" id="avatarSvg" viewBox="0 0 110 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Soft glow bg -->
+        <circle cx="55" cy="58" r="42" fill="#2A2420"/>
+        <circle cx="55" cy="58" r="38" fill="#322C26"/>
+        <!-- Hair -->
+        <ellipse cx="55" cy="32" rx="26" ry="20" fill="#5C4A38"/>
+        <ellipse cx="55" cy="40" rx="26" ry="14" fill="#5C4A38"/>
+        <!-- Face -->
+        <ellipse cx="55" cy="52" rx="22" ry="24" fill="#D4A574"/>
+        <!-- Cheeks -->
+        <circle cx="40" cy="58" r="7" fill="#E8A090" opacity="0.3"/>
+        <circle cx="70" cy="58" r="7" fill="#E8A090" opacity="0.3"/>
+        <!-- Eyes open -->
+        <g class="eye-open" id="eyesOpen">
+          <ellipse cx="47" cy="50" rx="4" ry="4.5" fill="#3D2B1F"/>
+          <circle cx="48.5" cy="48.5" r="1.2" fill="white"/>
+          <ellipse cx="63" cy="50" rx="4" ry="4.5" fill="#3D2B1F"/>
+          <circle cx="64.5" cy="48.5" r="1.2" fill="white"/>
+          <!-- Lashes -->
+          <path d="M43 46.5 Q47 44 51 46.5" stroke="#3D2B1F" stroke-width="1.2" fill="none"/>
+          <path d="M59 46.5 Q63 44 67 46.5" stroke="#3D2B1F" stroke-width="1.2" fill="none"/>
+        </g>
+        <!-- Eyes closed (blink) -->
+        <g class="eye-closed" id="eyesClosed">
+          <path d="M43 50 Q47 47 51 50" stroke="#3D2B1F" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+          <path d="M59 50 Q63 47 67 50" stroke="#3D2B1F" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+        </g>
+        <!-- Eyebrows -->
+        <path d="M43 44.5 Q47 42.5 51 44" stroke="#5C4A38" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+        <path d="M59 44 Q63 42.5 67 44.5" stroke="#5C4A38" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+        <!-- Nose -->
+        <path d="M53 58 Q55 61 57 58" stroke="#C4845A" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <!-- Mouth neutral (small smile) -->
+        <path class="mouth-neutral" d="M48 66 Q55 70 62 66" stroke="#C4845A" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <!-- Mouth speaking (open O) -->
+        <ellipse class="mouth-speak" cx="55" cy="67" rx="6" ry="4" fill="#3D2B1F"/>
+        <ellipse class="mouth-speak" cx="55" cy="67" rx="4" ry="2.5" fill="#C4845A" opacity="0.6"/>
+        <!-- Mouth listening (soft open) -->
+        <path class="mouth-listen" d="M49 66 Q55 69 61 66" stroke="#C4845A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <!-- Neck -->
+        <rect x="49" y="74" width="12" height="8" rx="4" fill="#D4A574"/>
+        <!-- Shoulders / top -->
+        <ellipse cx="55" cy="90" rx="28" ry="14" fill="#C9B99A" opacity="0.3"/>
+        <ellipse cx="55" cy="88" rx="24" ry="10" fill="#3D3228"/>
+      </svg>
+    </div>
+    <div class="avatar-status" id="avatarStatus"></div>
+  </div>
+
+  <div class="messages" id="messages"></div>
+
+  <div class="input-area">
+    <div class="input-hint">🎙 Laut sprechen — dann Mikrofon auf der Tastatur antippen</div>
+    <div class="input-row">
+      <textarea
+        id="userInput"
+        rows="1"
+        placeholder="🎙 Sprechen → Text erscheint hier…"
+        oninput="autoResize(this)"
+        onkeydown="handleKey(event)"
+      ></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()" style="background:#2d2820; color:#666;">↑</button>
+    </div>
+  </div>
+</div>
+
+<!-- UNLOCK SCREEN -->
+<div id="unlock" class="screen">
+  <div class="unlock-emoji" id="unlockEmoji"></div>
+  <div class="unlock-became" id="unlockBecame">Du bist jetzt</div>
+  <div class="unlock-name" id="unlockName"></div>
+  <div class="unlock-inspired" id="unlockInspired"></div>
+  <div class="unlock-quote-box">
+    <div class="unlock-quote" id="unlockQuote"></div>
+    <div class="unlock-quote-attr" id="unlockAttr"></div>
+  </div>
+  <div class="unlock-msg" id="unlockMsg"></div>
+  <button class="unlock-btn" id="unlockBtn" onclick="afterUnlock()">Weiter →</button>
+</div>
+
+
+<!-- SETUP SCREEN -->
+<div id="setup" class="screen" style="align-items:center;justify-content:center;padding:40px 28px;text-align:center;">
+  <div style="font-size:40px;margin-bottom:20px;">🔑</div>
+  <div style="font-family:'Lora',serif;font-size:24px;font-style:italic;margin-bottom:8px;">API Key eingeben</div>
+  <div style="font-size:13px;color:#7a7060;margin-bottom:32px;line-height:1.7;max-width:300px;">
+    Dein OpenAI API Key wird nur lokal auf deinem Gerät gespeichert.
+  </div>
+  <input
+    type="password"
+    id="keyInput"
+    placeholder="sk-..."
+    style="width:100%;background:#252118;border:1px solid #2d2820;border-radius:12px;
+      padding:14px 16px;color:#F2EFE9;font-family:'DM Sans',sans-serif;font-size:14px;
+      outline:none;margin-bottom:14px;box-sizing:border-box;-webkit-appearance:none;"
+    oninput="document.getElementById('keySubmit').style.background=this.value.trim().startsWith('sk-')?'#C9B99A':'#2d2820'"
+  />
+  <button id="keySubmit"
+    onclick="saveKey()"
+    style="width:100%;padding:14px;background:#2d2820;color:#1C1914;border:none;border-radius:12px;
+      font-size:15px;font-family:'Lora',serif;font-style:italic;cursor:pointer;-webkit-appearance:none;transition:all 0.2s;">
+    Los geht's →
+  </button>
+</div>
+
+<script>
+let API_KEY = localStorage.getItem('openai_key') || '';
+const REPS_PER_LEVEL = 15;
+
+const CHARACTERS = [
+  { level:1, name:"Die Beobachterin", realName:"Susan Cain", title:"Autorin von Quiet", emoji:"🌱",
+    color:"#C9B99A", bg:"#2A2420",
+    quote:"Es gibt keine Korrelation zwischen dem besten Redner und den besten Ideen.",
+    description:"Du beobachtest, du nimmst alles wahr. Hier beginnt jede Stimme.",
+    unlockMsg:"Du hast angefangen. Das ist das Schwerste." },
+  { level:2, name:"Die Wahrnehmende", realName:"Chimamanda Ngozi Adichie", title:"Autorin & Geschichtenerzählerin", emoji:"🍂",
+    color:"#D4845A", bg:"#2A1F18",
+    quote:"Die einzelne Geschichte erschafft Klischees. Deine Geschichte zählt.",
+    description:"Du fängst an, kleine Wahrheiten zu teilen.",
+    unlockMsg:"Deine Perspektive ist bereits interessant. Vertrau dem." },
+  { level:3, name:"Die Ehrliche", realName:"Brené Brown", title:"Forscherin & Autorin", emoji:"🕯️",
+    color:"#E8C547", bg:"#26221A",
+    quote:"Verletzlichkeit ist keine Schwäche. Sie ist unser größtes Maß an Mut.",
+    description:"Du lässt echte Gedanken raus. Auch die unsicheren.",
+    unlockMsg:"Du hast etwas Echtes gesagt. Das braucht mehr Mut als die meisten wissen." },
+  { level:4, name:"Der Witz", realName:"Mindy Kaling", title:"Autorin, Schauspielerin, Macherin", emoji:"✨",
+    color:"#A8C5A0", bg:"#1A2420",
+    quote:"Warum habe ich Selbstvertrauen? Weil ich hart gearbeitet und es verdient habe.",
+    description:"Der Humor, der nur im engen Kreis lebte, zeigt sich jetzt woanders.",
+    unlockMsg:"Du warst witzig. Absichtlich. Das ist riesig." },
+  { level:5, name:"Die Stimme", realName:"Carly Taylor", title:"Data Scientist & Creatorin", emoji:"🔥",
+    color:"#F07167", bg:"#261A1A",
+    quote:"Authentizität ist keine Markenstrategie. Es ist einfach zu müde, um noch eine Rolle zu spielen.",
+    description:"Du zeigst dich als du selbst — überall.",
+    unlockMsg:"Du hast sie gefunden. Sie war immer in dir." },
+];
+
+const SYSTEM_PROMPT = `Du bist ein warmherziger, weiser Soft-Skills-Coach, der einer schüchternen Person hilft, ihre Stimme zu finden.
+
+Stil: Wie eine freundliche ältere Freundin. Warmherzig, konkret, nie generisch. Manchmal humorvoll.
+
+WICHTIG: Die Person SPRICHT per Sprache-zu-Text. Beurteile Inhalt und Natuerlichkeit, nicht Grammatik. Achte auf Abschwächungen wie "eigentlich", "irgendwie". Gib Feedback fuers Sprechen.
+
+Antworte IMMER auf Deutsch.
+
+Wenn du eine Aufgabe gibst:
+**Situation:** [realistische konkrete Situation]
+*Dein Fokus:* [eine Sache, max 8 Wörter]
+
+Wenn du auf ihre Antwort reagierst:
+- 2-3 Sätze konkretes Sprech-Feedback
+- Benenne genau was gut klang
+- Ende: neue Aufgabe ODER sanfter Anstoß ODER frage ob neue Situation
+
+Bleib gemütlich und echt.`;
+
+let totalReps = 0;
+let currentCategory = null;
+let messages = [];
+let loading = false;
+let blinkInterval = null;
+let speakTimeout = null;
+
+function currentLevel() { return Math.min(Math.floor(totalReps / REPS_PER_LEVEL), CHARACTERS.length - 1); }
+function currentChar() { return CHARACTERS[currentLevel()]; }
+function repsInLevel() { return totalReps % REPS_PER_LEVEL; }
+
+// ── HOME ──
+function updateHome() {
+  const c = currentChar();
+  document.getElementById('homeCharCard').style.borderColor = c.color + '44';
+  document.getElementById('homeCharCard').style.background = c.bg;
+  document.getElementById('homeCharEmoji').textContent = c.emoji;
+  document.getElementById('homeCharLabel').style.color = c.color;
+  document.getElementById('homeCharName').textContent = c.name;
+  document.getElementById('homeCharName').style.color = '#F2EFE9';
+  document.getElementById('homeCharInspired').textContent = 'inspiriert von ' + c.realName;
+  document.getElementById('homeCharQuote').textContent = '\u201e' + c.quote + '\u201c';
+
+  const level = currentLevel() + 1;
+  const reps = repsInLevel();
+  const pct = level >= CHARACTERS.length ? 100 : (reps / REPS_PER_LEVEL) * 100;
+  document.getElementById('progressLabel').textContent = 'Stufe ' + level;
+  document.getElementById('progressCount').textContent = level >= CHARACTERS.length ? '✨' : reps + '/' + REPS_PER_LEVEL;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressFill').style.background = c.color;
+
+  // Color category buttons on hover accent
+  document.querySelectorAll('.cat-btn').forEach(b => {
+    b.style.borderColor = '#2d2820';
+  });
+}
+
+// ── AVATAR ──
+function setAvatarState(state) { // idle | speaking | listening
+  const wrap = document.getElementById('avatarWrap');
+  wrap.classList.remove('speaking','listening');
+  document.getElementById('avatarStatus').textContent = '';
+  if (state === 'speaking') {
+    wrap.classList.add('speaking');
+    document.getElementById('avatarStatus').textContent = 'spricht…';
+  } else if (state === 'listening') {
+    wrap.classList.add('listening');
+    document.getElementById('avatarStatus').textContent = 'hört zu…';
+  }
+}
+
+function startBlink() {
+  blinkInterval = setInterval(() => {
+    const svg = document.getElementById('avatarSvg');
+    svg.classList.add('blinking');
+    setTimeout(() => svg.classList.remove('blinking'), 150);
+  }, 3500 + Math.random() * 2000);
+}
+
+// ── CHAT ──
+function startSession(cat) {
+  currentCategory = cat;
+  messages = [];
+  document.getElementById('messages').innerHTML = '';
+  document.getElementById('userInput').value = '';
+
+  const c = currentChar();
+  document.getElementById('headerName').textContent = c.name;
+  document.getElementById('headerLevel').textContent = 'inspiriert von ' + c.realName + ' · Stufe ' + (currentLevel()+1);
+
+  // Style avatar ring color
+  document.querySelectorAll('.listen-ring').forEach(r => r.style.borderColor = c.color);
+
+  showScreen('chat');
+  setAvatarState('idle');
+  startBlink();
+
+  callAPI(`Gib mir eine ${cat}-Übungsaufgabe auf Deutsch. Nur die Aufgabe, warmherzig und konkret.`, true);
+}
+
+function goHome() {
+  clearInterval(blinkInterval);
+  showScreen('home');
+  updateHome();
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function appendMessage(role, text) {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.textContent = text;
+  const c = currentChar();
+  if (role === 'user') bubble.style.background = c.color;
+  div.appendChild(bubble);
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function showTyping() {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg assistant'; div.id = 'typing';
+  div.innerHTML = `<div class="typing-dots">
+    <div class="dot" style="background:${currentChar().color}"></div>
+    <div class="dot" style="background:${currentChar().color}"></div>
+    <div class="dot" style="background:${currentChar().color}"></div>
+  </div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function removeTyping() {
+  const t = document.getElementById('typing');
+  if (t) t.remove();
+}
+
+async function callAPI(userText, isFirst = false) {
+  if (!isFirst) messages.push({ role: 'user', content: userText });
+  loading = true;
+  updateSendBtn();
+  setAvatarState('idle');
+  showTyping();
+
+  const chatMessages = [
+    { role: 'system', content: SYSTEM_PROMPT },
+    ...(isFirst ? [{ role: 'user', content: userText }] : messages)
+  ];
+
+  const payload = {
+    model: 'gpt-4o',
+    max_tokens: 2048,
+    messages: chatMessages,
+  };
+
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + API_KEY,
+      },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const text = data.choices?.[0]?.message?.content || '';
+    removeTyping();
+    messages.push({ role: 'assistant', content: text });
+    appendMessage('assistant', text);
+
+    // Avatar speaks while message appears
+    setAvatarState('speaking');
+    const speakDuration = Math.min(text.length * 40, 4000);
+    speakTimeout = setTimeout(() => setAvatarState('idle'), speakDuration);
+
+  } catch(e) {
+    removeTyping();
+    appendMessage('assistant', 'Fehler: ' + e.message);
+    setAvatarState('idle');
+  }
+  loading = false;
+  updateSendBtn();
+}
+
+function sendMessage() {
+  const input = document.getElementById('userInput');
+  const text = input.value.trim();
+  if (!text || loading) return;
+  input.value = '';
+  autoResize(input);
+  appendMessage('user', text);
+  setAvatarState('listening');
+
+  // Check level up
+  const prevLevel = currentLevel();
+  totalReps++;
+  const newLevel = currentLevel();
+  if (newLevel > prevLevel) {
+    setTimeout(() => showUnlock(CHARACTERS[newLevel]), 600);
+  }
+
+  callAPI(text);
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+function updateSendBtn() {
+  const btn = document.getElementById('sendBtn');
+  const c = currentChar();
+  const hasText = document.getElementById('userInput').value.trim().length > 0;
+  btn.style.background = (hasText && !loading) ? c.color : '#2d2820';
+  btn.style.color = (hasText && !loading) ? '#1C1914' : '#555';
+  btn.disabled = loading || !hasText;
+}
+
+// Listen state when user is typing (simulating speech input)
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('userInput');
+  input.addEventListener('input', () => {
+    updateSendBtn();
+    if (input.value.length > 0) setAvatarState('listening');
+    else setAvatarState('idle');
+  });
+  input.addEventListener('blur', () => {
+    if (!loading) setAvatarState('idle');
+  });
+});
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 110) + 'px';
+}
+
+// ── UNLOCK ──
+function showUnlock(char) {
+  clearInterval(blinkInterval);
+  clearTimeout(speakTimeout);
+  document.getElementById('unlockEmoji').textContent = char.emoji;
+  document.getElementById('unlockBecame').style.color = char.color;
+  document.getElementById('unlockName').textContent = char.name;
+  document.getElementById('unlockInspired').textContent = 'inspiriert von ' + char.realName + ' · ' + char.title;
+  document.getElementById('unlockInspired').style.color = char.color;
+  document.getElementById('unlockQuote').textContent = '\u201e' + char.quote + '\u201c';
+  document.getElementById('unlockAttr').textContent = '— ' + char.realName;
+  document.getElementById('unlockAttr').style.color = char.color;
+  document.getElementById('unlockMsg').textContent = char.unlockMsg;
+  document.getElementById('unlockBtn').style.background = char.color;
+  document.getElementById('unlock').style.background = char.bg;
+  showScreen('unlock');
+}
+
+function afterUnlock() {
+  goHome();
+}
+
+
+function saveKey() {
+  const key = document.getElementById('keyInput').value.trim();
+  if (!key.startsWith('sk-')) return;
+  API_KEY = key;
+  localStorage.setItem('openai_key', key);
+  updateHome();
+  startBlink();
+  showScreen('home');
+}
+
+// Init
+if (!API_KEY) {
+  showScreen('setup');
+} else {
+  updateHome();
+  startBlink();
+}
+</script>
+</body>
+</html>
